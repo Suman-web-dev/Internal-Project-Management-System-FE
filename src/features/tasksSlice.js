@@ -13,10 +13,17 @@ export const fetchTasks = createAsyncThunk(
       return tasks.map(task => ({
         ...task,
         id: task._id || task.id,
-        assignedTo: task.assignedTo ? {
-          ...task.assignedTo,
-          id: task.assignedTo._id || task.assignedTo.id
-        } : task.assignedTo
+        assignedTo: task.assignedTo && Array.isArray(task.assignedTo)
+          ? task.assignedTo.map(user => ({
+              ...user,
+              id: user._id || user.id
+            }))
+          : task.assignedTo
+            ? {
+                ...task.assignedTo,
+                id: task.assignedTo._id || task.assignedTo.id
+              }
+            : task.assignedTo
       }));
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tasks');
@@ -35,10 +42,17 @@ export const createTask = createAsyncThunk(
       return {
         ...task,
         id: task._id || task.id,
-        assignedTo: task.assignedTo ? {
-          ...task.assignedTo,
-          id: task.assignedTo._id || task.assignedTo.id
-        } : task.assignedTo
+        assignedTo: task.assignedTo && Array.isArray(task.assignedTo)
+          ? task.assignedTo.map(user => ({
+              ...user,
+              id: user._id || user.id
+            }))
+          : task.assignedTo
+            ? {
+                ...task.assignedTo,
+                id: task.assignedTo._id || task.assignedTo.id
+              }
+            : task.assignedTo
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create task');
@@ -57,10 +71,17 @@ export const updateTask = createAsyncThunk(
       return {
         ...task,
         id: task._id || task.id,
-        assignedTo: task.assignedTo ? {
-          ...task.assignedTo,
-          id: task.assignedTo._id || task.assignedTo.id
-        } : task.assignedTo
+        assignedTo: task.assignedTo && Array.isArray(task.assignedTo)
+          ? task.assignedTo.map(user => ({
+              ...user,
+              id: user._id || user.id
+            }))
+          : task.assignedTo
+            ? {
+                ...task.assignedTo,
+                id: task.assignedTo._id || task.assignedTo.id
+              }
+            : task.assignedTo
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update task');
@@ -91,10 +112,17 @@ export const moveTask = createAsyncThunk(
       return {
         ...task,
         id: task._id || task.id,
-        assignedTo: task.assignedTo ? {
-          ...task.assignedTo,
-          id: task.assignedTo._id || task.assignedTo.id
-        } : task.assignedTo
+        assignedTo: task.assignedTo && Array.isArray(task.assignedTo)
+          ? task.assignedTo.map(user => ({
+              ...user,
+              id: user._id || user.id
+            }))
+          : task.assignedTo
+            ? {
+                ...task.assignedTo,
+                id: task.assignedTo._id || task.assignedTo.id
+              }
+            : task.assignedTo
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to move task');
@@ -117,10 +145,17 @@ const tasksSlice = createSlice({
       const task = {
         ...action.payload,
         id: action.payload._id || action.payload.id,
-        assignedTo: action.payload.assignedTo ? {
-          ...action.payload.assignedTo,
-          id: action.payload.assignedTo._id || action.payload.assignedTo.id
-        } : action.payload.assignedTo
+        assignedTo: action.payload.assignedTo && Array.isArray(action.payload.assignedTo)
+          ? action.payload.assignedTo.map(user => ({
+              ...user,
+              id: user._id || user.id
+            }))
+          : action.payload.assignedTo
+            ? {
+                ...action.payload.assignedTo,
+                id: action.payload.assignedTo._id || action.payload.assignedTo.id
+              }
+            : action.payload.assignedTo
       };
       state.tasks.push(task);
     },
@@ -131,10 +166,17 @@ const tasksSlice = createSlice({
         const task = {
           ...action.payload,
           id: action.payload._id || action.payload.id,
-          assignedTo: action.payload.assignedTo ? {
-            ...action.payload.assignedTo,
-            id: action.payload.assignedTo._id || action.payload.assignedTo.id
-          } : action.payload.assignedTo
+          assignedTo: action.payload.assignedTo && Array.isArray(action.payload.assignedTo)
+            ? action.payload.assignedTo.map(user => ({
+                ...user,
+                id: user._id || user.id
+              }))
+            : action.payload.assignedTo
+              ? {
+                  ...action.payload.assignedTo,
+                  id: action.payload.assignedTo._id || action.payload.assignedTo.id
+                }
+              : action.payload.assignedTo
         };
         state.tasks[index] = task;
       }

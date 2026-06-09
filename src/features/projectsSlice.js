@@ -12,7 +12,12 @@ export const fetchProjects = createAsyncThunk(
       // Transform MongoDB _id to id for frontend consistency
       return projects.map(project => ({
         ...project,
-        id: project._id || project.id
+        id: project._id || project.id,
+        owner: project.owner ? { ...project.owner, id: project.owner._id || project.owner.id } : null,
+        members: project.members ? project.members.map(member => ({
+          ...member,
+          id: member._id || member.id
+        })) : []
       }));
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch projects');
@@ -30,7 +35,12 @@ export const createProject = createAsyncThunk(
       // Transform MongoDB _id to id for frontend consistency
       return {
         ...project,
-        id: project._id || project.id
+        id: project._id || project.id,
+        owner: project.owner ? { ...project.owner, id: project.owner._id || project.owner.id } : null,
+        members: project.members ? project.members.map(member => ({
+          ...member,
+          id: member._id || member.id
+        })) : []
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create project');
@@ -48,7 +58,12 @@ export const updateProject = createAsyncThunk(
       // Transform MongoDB _id to id for frontend consistency
       return {
         ...project,
-        id: project._id || project.id
+        id: project._id || project.id,
+        owner: project.owner ? { ...project.owner, id: project.owner._id || project.owner.id } : null,
+        members: project.members ? project.members.map(member => ({
+          ...member,
+          id: member._id || member.id
+        })) : []
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update project');
@@ -82,7 +97,12 @@ const projectsSlice = createSlice({
     addProjectFromSocket: (state, action) => {
       const project = {
         ...action.payload,
-        id: action.payload._id || action.payload.id
+        id: action.payload._id || action.payload.id,
+        owner: action.payload.owner ? { ...action.payload.owner, id: action.payload.owner._id || action.payload.owner.id } : null,
+        members: action.payload.members ? action.payload.members.map(member => ({
+          ...member,
+          id: member._id || member.id
+        })) : []
       };
       state.projects.push(project);
     },
@@ -92,7 +112,12 @@ const projectsSlice = createSlice({
       if (index !== -1) {
         const project = {
           ...action.payload,
-          id: action.payload._id || action.payload.id
+          id: action.payload._id || action.payload.id,
+          owner: action.payload.owner ? { ...action.payload.owner, id: action.payload.owner._id || action.payload.owner.id } : null,
+          members: action.payload.members ? action.payload.members.map(member => ({
+            ...member,
+            id: member._id || member.id
+          })) : []
         };
         state.projects[index] = project;
       }
