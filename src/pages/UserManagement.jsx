@@ -24,6 +24,7 @@ const UserManagement = () => {
     if (isAdmin) {
       fetchUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
   const fetchUsers = async () => {

@@ -92,11 +92,7 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="mt-6 text-center">
-        <p className="text-xs text-gray-500">
-          © 2024 Project Manager. Internal use only.
-        </p>
-      </div>
+     
     </div>
   );
 };

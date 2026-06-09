@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
-import { USER_ROLES } from '../utils/constants';
 
 const VALID_ROLES = ['admin', 'member'];
 

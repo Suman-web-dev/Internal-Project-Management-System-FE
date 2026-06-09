@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchTasks, createTask, updateTask, deleteTask, moveTask, clearTasksError } from '../features/tasksSlice';
-import { openModal, closeModal, addToast, setSelectedTask } from '../features/uiSlice';
+import { openModal, closeModal, addToast } from '../features/uiSlice';
 import TaskCard from '../components/TaskCard';
 import Modal from '../components/Modal';
-import FormInput from '../components/Modal';
 import Loader from '../components/Loader';
 import Layout from '../components/Layout';
 import { validateTaskForm } from '../utils/validation';
@@ -48,6 +47,7 @@ const TaskBoard = () => {
     return () => {
       dispatch(clearTasksError());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, dispatch]);
 
   // Fetch all non-admin users for task assignment

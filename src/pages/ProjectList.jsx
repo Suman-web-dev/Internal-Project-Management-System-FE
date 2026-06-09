@@ -39,6 +39,7 @@ const ProjectList = () => {
     return () => {
       dispatch(clearProjectsError());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, isAdmin]);
 
   // Fetch all users for member assignment
@@ -106,17 +107,6 @@ const ProjectList = () => {
     dispatch(closeModal('createProject'));
     setFormData({ name: '', description: '', members: [] });
     setFormErrors({});
-  };
-
-  // Handle member selection for project
-  const handleMemberToggle = (userId) => {
-    setFormData(prev => {
-      const currentMembers = prev.members || [];
-      const newMembers = currentMembers.includes(userId)
-        ? currentMembers.filter(id => id !== userId)
-        : [...currentMembers, userId];
-      return { ...prev, members: newMembers };
-    });
   };
 
   const filteredProjects = (isAdmin

@@ -10,11 +10,6 @@ import UserManagement from './pages/UserManagement';
 import Toast from './components/Toast';
 import { removeToast } from './features/uiSlice';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" />;
-};
-
 const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/projects" /> : children;

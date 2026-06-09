@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import { TASK_STATUS, TASK_STATUS_LABELS } from '../utils/constants';
 
 // Task card component - displays individual task with status change dropdown
