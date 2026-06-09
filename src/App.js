@@ -15,6 +15,11 @@ const PublicRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/projects" /> : children;
 };
 
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
 const ToastContainer = () => {
   const { toasts } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
@@ -50,25 +55,25 @@ function App() {
             <Route
               path="/projects"
               element={
-                // <ProtectedRoute>
+                <ProtectedRoute>
                   <ProjectList />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/projects/:projectId/tasks"
               element={
-                // <ProtectedRoute>
+                <ProtectedRoute>
                   <TaskBoard />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/users"
               element={
-                // <ProtectedRoute>
+                <ProtectedRoute>
                   <UserManagement />
-                // </ProtectedRoute>
+                </ProtectedRoute>
               }
             />
             <Route path="/" element={<Navigate to="/projects" />} />

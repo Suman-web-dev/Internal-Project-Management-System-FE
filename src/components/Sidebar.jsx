@@ -5,7 +5,7 @@ import { useSidebar } from './Layout';
 import { USER_ROLES } from '../utils/constants';
 
 const Sidebar = () => {
-  const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { isCollapsed, setIsCollapsed, isMobileMenuOpen, setIsMobileMenuOpen } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -34,6 +34,7 @@ const Sidebar = () => {
 
   const handleNavigation = (path) => {
     navigate(path);
+    setIsMobileMenuOpen(false);
   };
 
   const isActive = (path) => {
@@ -41,71 +42,89 @@ const Sidebar = () => {
   };
 
   return (
-    <aside
-      className={`bg-gray-800 text-white transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      } min-h-screen fixed left-0 top-0 z-40`}
-    >
-      <div className="flex flex-col h-full">
-        {/* Toggle Button */}
-        <div className="p-4 border-b border-gray-700">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-md hover:bg-gray-700 transition-colors"
-          >
-            {isCollapsed ? (
+    <>
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+      
+      <aside
+        className={`bg-gray-800 text-white transition-all duration-300 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } ${isCollapsed ? 'lg:w-16' : 'lg:w-64'} w-64 min-h-screen fixed left-0 top-0 z-50 lg:z-40`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Toggle Button */}
+          <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden lg:flex w-full items-center justify-center p-2 rounded-md hover:bg-gray-700 transition-colors"
+            >
+              {isCollapsed ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="lg:hidden p-2 rounded-md hover:bg-gray-700 transition-colors"
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-            )}
-          </button>
-        </div>
+            </button>
+          </div>
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            if (item.adminOnly && user?.role !== USER_ROLES.ADMIN) return null;
-            return (
-              <button
-                key={item.name}
-                onClick={() => handleNavigation(item.path)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-md transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <span className="flex-shrink-0">{item.icon}</span>
-                {!isCollapsed && <span className="font-medium">{item.name}</span>}
-              </button>
-            );
-          })}
-        </nav>
+          {/* Navigation Menu */}
+          <nav className="flex-1 p-4 space-y-2">
+            {menuItems.map((item) => {
+              if (item.adminOnly && user?.role !== USER_ROLES.ADMIN) return null;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`w-full flex items-center space-x-3 p-3 rounded-md transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="flex-shrink-0">{item.icon}</span>
+                  {(!isCollapsed || isMobileMenuOpen) && <span className="font-medium">{item.name}</span>}
+                </button>
+              );
+            })}
+          </nav>
 
-        {/* User Info Section */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.name || 'User'}
-                </p>
-                <p className="text-xs text-gray-400 capitalize truncate">
-                  {user?.role || 'Member'}
-                </p>
+          {/* User Info Section */}
+          {(!isCollapsed || isMobileMenuOpen) && (
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user?.name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-400 capitalize truncate">
+                    {user?.role || 'Member'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-    </aside>
+          )}
+        </div>
+      </aside>
+    </>
   );
 };
 

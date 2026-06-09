@@ -195,9 +195,9 @@ const TaskBoard = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <button
               onClick={handleBackToProjects}
               className="text-gray-600 hover:text-gray-800 focus:outline-none"
@@ -206,13 +206,13 @@ const TaskBoard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
               {selectedProject?.title || 'Task Board'}
             </h1>
           </div>
           <button
             onClick={handleOpenCreateModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
           >
             Add Task
           </button>
@@ -229,7 +229,7 @@ const TaskBoard = () => {
             <Loader size="lg" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id);
               const isExpanded = expandedColumns[column.id];
@@ -239,8 +239,8 @@ const TaskBoard = () => {
               return (
                 <div key={column.id} className="bg-gray-100 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-gray-700">{column.title}</h2>
-                    <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded-full">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-700">{column.title}</h2>
+                    <span className="text-xs sm:text-sm text-gray-500 bg-white px-2 py-1 rounded-full">
                       {columnTasks.length}
                     </span>
                   </div>
@@ -248,7 +248,7 @@ const TaskBoard = () => {
                   {hasMoreTasks && (
                     <button
                       onClick={() => toggleColumnExpansion(column.id)}
-                      className="w-full mb-3 flex items-center justify-center space-x-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 py-2 rounded-md transition-colors"
+                      className="w-full mb-3 flex items-center justify-center space-x-2 text-xs sm:text-sm text-blue-600 hover:text-blue-700 bg-blue-50 py-2 rounded-md transition-colors"
                     >
                       <span>{isExpanded ? 'Show Less' : `Show ${columnTasks.length - 1} More`}</span>
                       <svg 
