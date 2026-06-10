@@ -29,7 +29,8 @@ const Login = () => {
     setErrors({});
     try {
       const result = await login({ email, password }).unwrap();
-      dispatch(setUser({ token: result.token, user: result.user }));
+      const { token, user } = result.data || result;
+      dispatch(setUser({ token, user }));
       navigate('/projects');
     } catch (err) {
       setErrors({ general: err.data?.message || err.message || 'Login failed' });
