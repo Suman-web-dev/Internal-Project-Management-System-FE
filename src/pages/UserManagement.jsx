@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToast, openModal, closeModal } from '../features/uiSlice';
 import Modal from '../components/Modal';
@@ -7,15 +7,12 @@ import Loader from '../components/Loader';
 import Layout from '../components/Layout';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { USER_ROLES } from '../utils/constants';
-import api from '../services/api';
+import { useGetAllUsersQuery, useDeleteUserMutation, useRegisterMutation } from '../services/authApiSlice';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { modals } = useSelector((state) => state.ui);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'member' });
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -23,26 +20,11 @@ const UserManagement = () => {
 
   const isAdmin = user?.role === USER_ROLES.ADMIN;
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/auth/users');
-      setUsers(response.data.data || response.data);
-      setError(null);
-    } catch (error) {
-      setError('Failed to fetch users');
-      dispatch(addToast({ message: 'Failed to fetch users', type: 'error' }));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: users = [], isLoading, error } = useGetAllUsersQuery(undefined, {
+    skip: !isAdmin,
+  });
+  const [deleteUser] = useDeleteUserMutation();
+  const [register] = useRegisterMutation();
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -54,17 +36,13 @@ const UserManagement = () => {
 
     setFormErrors({});
     try {
-      setLoading(true);
-      await api.post('/auth/register', formData);
+      await register(formData).unwrap();
       dispatch(addToast({ message: 'User created successfully. Welcome email sent.', type: 'success' }));
       dispatch(closeModal('createUser'));
       setFormData({ name: '', email: '', password: '', role: 'member' });
-      fetchUsers();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to create user';
+      const errorMessage = error.data?.message || 'Failed to create user';
       dispatch(addToast({ message: errorMessage, type: 'error' }));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -74,16 +52,12 @@ const UserManagement = () => {
 
   const confirmDeleteUser = async () => {
     try {
-      setLoading(true);
-      await api.delete(`/auth/users/${deleteConfirmation.userId}`);
+      await deleteUser(deleteConfirmation.userId).unwrap();
       dispatch(addToast({ message: 'User deleted successfully', type: 'success' }));
-      fetchUsers();
     } catch (error) {
       dispatch(addToast({ message: 'Failed to delete user', type: 'error' }));
-    } finally {
-      setLoading(false);
-      setDeleteConfirmation({ isOpen: false, userId: null });
     }
+    setDeleteConfirmation({ isOpen: false, userId: null });
   };
 
   const handleOpenCreateModal = () => {
@@ -135,11 +109,11 @@ const UserManagement = () => {
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+          {error.message || 'Failed to load users'}
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader size="lg" />
         </div>
@@ -174,7 +148,7 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((userItem) => (
+              {Array.isArray(users) && users.map((userItem) => (
                 <tr key={userItem.id} className="hover:bg-gray-50">
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -303,10 +277,10 @@ const UserManagement = () => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={register.isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create User'}
+              {register.isLoading ? 'Creating...' : 'Create User'}
             </button>
           </div>
         </form>

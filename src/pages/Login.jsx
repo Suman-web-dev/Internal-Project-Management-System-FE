@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import FormInput from '../components/FormInput';
 import Loader from '../components/Loader';
 import { validateLoginForm } from '../utils/validation';
+import { useLoginMutation } from '../services/authApiSlice';
+import { setUser } from '../features/authSlice';
 
 const Login = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const { login, loading, error, clearAuthError } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const [login, { isLoading }] = useLoginMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    clearAuthError();
     
     const validationErrors = validateLoginForm(email, password);
     if (Object.keys(validationErrors).length > 0) {
@@ -22,7 +27,13 @@ const Login = () => {
     }
 
     setErrors({});
-    await login(email, password);
+    try {
+      const result = await login({ email, password }).unwrap();
+      dispatch(setUser({ token: result.token, user: result.user }));
+      navigate('/projects');
+    } catch (err) {
+      setErrors({ general: err.data?.message || err.message || 'Login failed' });
+    }
   };
 
   return (
@@ -37,12 +48,12 @@ const Login = () => {
           <h2 className="text-3xl font-bold text-gray-900">Login</h2>
         </div>
         
-        {error && (
+        {errors.general && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
             <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-red-700">{errors.general}</p>
           </div>
         )}
 
@@ -89,10 +100,10 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center justify-center"
           >
-            {loading ? (
+            {isLoading ? (
               <span className="flex items-center justify-center">
                 <Loader size="sm" />
                 <span className="ml-2">Signing in...</span>

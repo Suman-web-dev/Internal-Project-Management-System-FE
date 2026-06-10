@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchTasks, createTask, updateTask, deleteTask, moveTask, clearTasksError } from '../features/tasksSlice';
 import { openModal, closeModal, addToast } from '../features/uiSlice';
 import TaskCard from '../components/TaskCard';
 import Modal from '../components/Modal';
@@ -11,73 +10,52 @@ import { validateTaskForm } from '../utils/validation';
 import { TASK_STATUS, TASK_STATUS_LABELS, USER_ROLES } from '../utils/constants';
 import { useSocket } from '../hooks/useSocket';
 import FormInputComponent from '../components/FormInput';
-import axios from 'axios';
-import { API_BASE_URL } from '../utils/constants';
+import { useGetTasksQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation } from '../services/tasksApiSlice';
+import { useGetAllUsersQuery } from '../services/authApiSlice';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import ConfirmationModal from '../components/ConfirmationModal';
 
-// Task board page - displays tasks in kanban columns with real-time updates
 const TaskBoard = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { tasks, loading, error } = useSelector((state) => state.tasks);
   const { user, token } = useSelector((state) => state.auth);
   const { selectedProject, modals } = useSelector((state) => state.ui);
   const [formData, setFormData] = useState({ title: '', description: '', assignedTo: [] });
   const [formErrors, setFormErrors] = useState({});
-  const [isEditing, setIsEditing] = useState(false);
   const [expandedColumns, setExpandedColumns] = useState({
     [TASK_STATUS.TODO]: false,
     [TASK_STATUS.IN_PROGRESS]: false,
     [TASK_STATUS.DONE]: false,
   });
-  const [availableUsers, setAvailableUsers] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, taskId: null });
 
   const isAdmin = user?.role === USER_ROLES.ADMIN;
-  const { emitTaskMove } = useSocket(token);
+  
+  // Force refetch when socket receives task updates
+  const { refetch } = useGetTasksQuery(projectId);
+  
+  const handleTaskUpdate = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  
+  const { emitTaskMove } = useSocket(token, handleTaskUpdate);
 
-  // Fetch tasks when component mounts or projectId changes
-  useEffect(() => {
-    if (projectId) {
-      dispatch(fetchTasks(projectId));
-      fetchAvailableUsers();
-    }
-    return () => {
-      dispatch(clearTasksError());
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, dispatch]);
+  const { data: tasks = [], isLoading, error } = useGetTasksQuery(projectId);
+  const { data: allUsers = [] } = useGetAllUsersQuery();
+  const availableUsers = Array.isArray(allUsers) ? allUsers.filter(user => user.role !== 'admin') : [];
+  const [createTask] = useCreateTaskMutation();
+  const [updateTask] = useUpdateTaskMutation();
+  const [deleteTask] = useDeleteTaskMutation();
 
-  // Fetch all non-admin users for task assignment
-  const fetchAvailableUsers = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      // Filter out admin users
-      const nonAdminUsers = response.data.data.filter(user => user.role !== 'admin');
-      setAvailableUsers(nonAdminUsers);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-    }
-  };
-
-  // Handle task status change with real-time notification
   const handleStatusChange = async (taskId, newStatus) => {
     const task = tasks.find((t) => t.id.toString() === taskId);
     if (task && task.status !== newStatus) {
-      const resultAction = await dispatch(moveTask({ 
-        projectId, 
-        taskId, 
-        status: newStatus 
-      }));
-      
-      if (resultAction.meta.requestStatus === 'fulfilled') {
+      try {
+        await updateTask({ taskId, taskData: { status: newStatus } }).unwrap();
         emitTaskMove({ ...task, status: newStatus });
         dispatch(addToast({ message: 'Task status updated successfully', type: 'success' }));
-      } else {
+      } catch (error) {
         dispatch(addToast({ message: 'Failed to update task status', type: 'error' }));
       }
     }
@@ -92,12 +70,12 @@ const TaskBoard = () => {
     }
 
     setFormErrors({});
-    const result = await dispatch(createTask({ projectId, taskData: formData }));
-    if (result.meta.requestStatus === 'fulfilled') {
+    try {
+      await createTask({ projectId, taskData: formData }).unwrap();
       dispatch(closeModal('createTask'));
       dispatch(addToast({ message: 'Task created successfully', type: 'success' }));
       setFormData({ title: '', description: '', assignedTo: [] });
-    } else {
+    } catch (error) {
       dispatch(addToast({ message: 'Failed to create task', type: 'error' }));
     }
   };
@@ -111,39 +89,35 @@ const TaskBoard = () => {
     }
 
     setFormErrors({});
-    const result = await dispatch(updateTask({ 
-      projectId, 
-      taskId: formData.id, 
-      taskData: formData 
-    }));
-    
-    if (result.meta.requestStatus === 'fulfilled') {
+    try {
+      const { id, ...taskData } = formData;
+      await updateTask({ 
+        projectId, 
+        taskId: formData.id, 
+        taskData 
+      }).unwrap();
       dispatch(closeModal('editTask'));
       dispatch(addToast({ message: 'Task updated successfully', type: 'success' }));
       setFormData({ title: '', description: '', assignedTo: [] });
-      setIsEditing(false);
-    } else {
+    } catch (error) {
       dispatch(addToast({ message: 'Failed to update task', type: 'error' }));
     }
   };
 
-  // Handle task deletion with confirmation modal
   const handleDeleteTask = (taskId) => {
     setConfirmDelete({ isOpen: true, taskId });
   };
 
-  // Confirm task deletion
   const confirmDeleteTask = async () => {
-    const result = await dispatch(deleteTask({ projectId, taskId: confirmDelete.taskId }));
-    if (result.meta.requestStatus === 'fulfilled') {
+    try {
+      await deleteTask({ taskId: confirmDelete.taskId }).unwrap();
       dispatch(addToast({ message: 'Task deleted successfully', type: 'success' }));
-    } else {
+    } catch (error) {
       dispatch(addToast({ message: 'Failed to delete task', type: 'error' }));
     }
     setConfirmDelete({ isOpen: false, taskId: null });
   };
 
-  // Cancel task deletion
   const cancelDeleteTask = () => {
     setConfirmDelete({ isOpen: false, taskId: null });
   };
@@ -155,13 +129,11 @@ const TaskBoard = () => {
       description: task.description,
       assignedTo: task.assignedTo?.id ? [task.assignedTo.id] : []
     });
-    setIsEditing(true);
     dispatch(openModal('editTask'));
   };
 
   const handleOpenCreateModal = () => {
     setFormData({ title: '', description: '', assignedTo: [] });
-    setIsEditing(false);
     dispatch(openModal('createTask'));
   };
 
@@ -169,7 +141,6 @@ const TaskBoard = () => {
     dispatch(closeModal(modalName));
     setFormData({ title: '', description: '', assignedTo: [] });
     setFormErrors({});
-    setIsEditing(false);
   };
 
   const handleBackToProjects = () => {
@@ -224,7 +195,7 @@ const TaskBoard = () => {
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader size="lg" />
           </div>
@@ -290,9 +261,9 @@ const TaskBoard = () => {
       <Modal
         isOpen={modals.createTask}
         onClose={() => handleCloseModal('createTask')}
-        title={isEditing ? 'Edit Task' : 'Create New Task'}
+        title="Create New Task"
       >
-        <form onSubmit={isEditing ? handleUpdateTask : handleCreateTask}>
+        <form onSubmit={handleCreateTask}>
           <FormInputComponent
             label="Title"
             type="text"
@@ -326,7 +297,7 @@ const TaskBoard = () => {
 
           <MultiSelectDropdown
             label="Assign To"
-            options={availableUsers.map(user => ({ value: user.id, label: `${user.name} (${user.email})` }))}
+            options={Array.isArray(availableUsers) ? availableUsers.map(user => ({ value: user.id, label: `${user.name} (${user.email})` })) : []}
             selectedValues={formData.assignedTo || []}
             onChange={(selectedUsers) => setFormData({ ...formData, assignedTo: selectedUsers })}
             placeholder="Select users to assign this task"
@@ -335,7 +306,7 @@ const TaskBoard = () => {
           <div className="flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => handleCloseModal(isEditing ? 'editTask' : 'createTask')}
+              onClick={() => handleCloseModal('createTask')}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Cancel
@@ -344,7 +315,70 @@ const TaskBoard = () => {
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {isEditing ? 'Update' : 'Create'}
+              Create
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={modals.editTask}
+        onClose={() => handleCloseModal('editTask')}
+        title="Edit Task"
+      >
+        <form onSubmit={handleUpdateTask}>
+          <FormInputComponent
+            label="Title"
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            error={formErrors.title}
+            placeholder="Enter task title"
+            required
+          />
+
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <textarea
+              name="description"
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter task description"
+              required
+              rows={4}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.description ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {formErrors.description && <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>}
+          </div>
+
+          <MultiSelectDropdown
+            label="Assign To"
+            options={Array.isArray(availableUsers) ? availableUsers.map(user => ({ value: user.id, label: `${user.name} (${user.email})` })) : []}
+            selectedValues={formData.assignedTo || []}
+            onChange={(selectedUsers) => setFormData({ ...formData, assignedTo: selectedUsers })}
+            placeholder="Select users to assign this task"
+          />
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => handleCloseModal('editTask')}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Update
             </button>
           </div>
         </form>
