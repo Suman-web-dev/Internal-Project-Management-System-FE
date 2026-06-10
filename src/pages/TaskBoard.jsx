@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { openModal, closeModal, addToast } from '../features/uiSlice';
@@ -39,7 +39,21 @@ const TaskBoard = () => {
     refetch();
   }, [refetch]);
   
-  const { emitTaskMove } = useSocket(token, handleTaskUpdate);
+  const { emitTaskMove } = useSocket(token, handleTaskUpdate, projectId);
+
+  // Fallback: Refetch tasks when window regains focus (in case socket doesn't work)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetch]);
 
   const { data: tasks = [], isLoading, error } = useGetTasksQuery(projectId);
   const { data: allUsers = [] } = useGetAllUsersQuery();
