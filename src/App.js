@@ -48,7 +48,7 @@ function App() {
               path="/login"
               element={
                 <PublicRoute>
-                  <Login />
+                  <Login /> 
                 </PublicRoute>
               }
             />
